@@ -7,11 +7,14 @@ import {IRocketDepositPool} from
 import {IRocketDAOProtocolSettingsDeposit} from
     "../interfaces/rocket-pool/IRocketDAOProtocolSettingsDeposit.sol";
 import {IRocketStorage} from "../interfaces/rocket-pool/IRocketStorage.sol";
+import {IRocketNetworkBalances} from
+    "../interfaces/rocket-pool/IRocketNetworkBalances.sol";
 import {
     RETH,
     ROCKET_STORAGE,
     ROCKET_DEPOSIT_POOL,
-    ROCKET_DAO_PROTOCOL_SETTINGS_DEPOSIT
+    ROCKET_DAO_PROTOCOL_SETTINGS_DEPOSIT,
+    ROCKET_NETWORK_BALANCES
 } from "../Constants.sol";
 
 /// @title SwapRocketPool
@@ -24,6 +27,8 @@ contract SwapRocketPool {
         IRocketDepositPool(ROCKET_DEPOSIT_POOL);
     IRocketDAOProtocolSettingsDeposit public constant protocolSettings =
         IRocketDAOProtocolSettingsDeposit(ROCKET_DAO_PROTOCOL_SETTINGS_DEPOSIT);
+    IRocketNetworkBalances public constant networkBalances =
+        IRocketNetworkBalances(ROCKET_NETWORK_BALANCES);
 
     uint256 constant CALC_BASE = 1e18;
 
@@ -37,6 +42,26 @@ contract SwapRocketPool {
         returns (uint256 rEthAmount, uint256 fee)
     {
         // Write your code here
+        // The formula to compute the amount of rETH received is:
+        // e = r * E / R
+        // where:
+        // e = amount of ETH received
+        // r = amount of rETH to receive
+        // E = total amount of ETH in the pool
+        // R = total amount of rETH in the pool
+        // Hence,
+        // r = e * R / E
+        uint256 depositFee =
+            ethAmount * protocolSettings.getDepositFee() / CALC_BASE;
+        uint256 totalETHBalance = networkBalances.getTotalETHBalance();
+        uint256 totalRETHSupply = networkBalances.getTotalRETHSupply();
+        if (totalRETHSupply == 0) {
+            return (ethAmount, depositFee);
+        }
+        rEthAmount =
+            (ethAmount - depositFee) * totalRETHSupply / totalETHBalance;
+        fee = depositFee;
+        return (rEthAmount, fee);
     }
 
     /// @notice Calculates the amount of ETH for a given rETH amount.

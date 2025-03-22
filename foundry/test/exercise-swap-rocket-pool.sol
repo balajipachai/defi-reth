@@ -144,7 +144,7 @@ contract RocketPoolSwapTest is RocketPoolTestBase {
         }
 
         console.log("Deposit enabled:", protocolSettings.getDepositEnabled());
-        console.log("Dax deposit: %e", depositPool.getMaximumDepositAmount());
+        console.log("Max deposit: %e", depositPool.getMaximumDepositAmount());
         console.log("Exchange rate: 1e18 rETH = %e ETH", reth.getExchangeRate());
     }
 

@@ -55,7 +55,22 @@ contract SwapUniswapV3 {
     function swapWethToReth(uint256 wethAmountIn, uint256 rEthAmountOutMin)
         external
     {
-        // Write your code inside here
+        // Pull in the WETH tokens into the contract
+        weth.transferFrom(msg.sender, address(this), wethAmountIn);
+        // Approve the router to transfer WETH on behalf of the contract
+        weth.approve(address(router), wethAmountIn);
+
+        // This can be achieved by calling the swap function with the correct parameters
+        // However, inorder to make that call, we would need all the different swap function parameters
+        // Those are alreay defined in constants.sol, so pick from there and call the swap function
+        swap(
+            WETH,
+            RETH,
+            UNISWAP_V3_POOL_FEE_RETH_WETH,
+            wethAmountIn,
+            rEthAmountOutMin,
+            address(this)
+        );
     }
 
     /// @notice Swaps rETH to WETH using Uniswap V3.
@@ -65,6 +80,19 @@ contract SwapUniswapV3 {
     function swapRethToWeth(uint256 rEthAmountIn, uint256 wethAmountOutMin)
         external
     {
-        // Write your code inside here
+        // Pull in the rETH tokens into the contract
+        reth.transferFrom(msg.sender, address(this), rEthAmountIn);
+        // Approve the router to transfer rETH on behalf of the contract
+        reth.approve(address(router), rEthAmountIn);
+
+        // Same as above, however, the tokenIn and tokenOut are reversed
+        swap(
+            RETH,
+            WETH,
+            UNISWAP_V3_POOL_FEE_RETH_WETH,
+            rEthAmountIn,
+            wethAmountOutMin,
+            address(this)
+        );
     }
 }

@@ -61,7 +61,20 @@ contract SwapBalancerV2 {
     function swapWethToReth(uint256 wethAmountIn, uint256 rEthAmountOutMin)
         external
     {
-        // Write your code here
+        // Pull in the WETH tokens into the contract
+        weth.transferFrom(msg.sender, address(this), wethAmountIn);
+
+        // Approve the vault to transfer WETH on behalf of the contract
+        weth.approve(address(vault), wethAmountIn);
+
+        // Call the swap function with the correct parameters
+        swap(
+            WETH,
+            RETH,
+            wethAmountIn,
+            rEthAmountOutMin,
+            BALANCER_POOL_ID_RETH_WETH
+        );
     }
 
     /// @notice Swaps rETH to WETH using the Balancer Vault.
@@ -71,6 +84,19 @@ contract SwapBalancerV2 {
     function swapRethToWeth(uint256 rEthAmountIn, uint256 wethAmountOutMin)
         external
     {
-        // Write your code here
+        // Pull in the rETH tokens into the contract
+        reth.transferFrom(msg.sender, address(this), rEthAmountIn);
+
+        // Approve the vault to transfer rETH on behalf of the contract
+        reth.approve(address(vault), rEthAmountIn);
+
+        // Call the swap function with the correct parameters
+        swap(
+            RETH,
+            WETH,
+            rEthAmountIn,
+            wethAmountOutMin,
+            BALANCER_POOL_ID_RETH_WETH
+        );
     }
 }

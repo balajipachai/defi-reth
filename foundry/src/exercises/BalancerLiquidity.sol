@@ -92,7 +92,32 @@ contract BalancerLiquidity {
     ///      It accepts both RETH and WETH as input and approves the respective tokens for the Vault.
     ///      The user receives Balancer Pool Tokens (BPT) as a representation of their share in the pool.
     function join(uint256 rethAmount, uint256 wethAmount) external {
-        // Write your code here
+        // Pull in both RETH & WETH tokens
+        reth.transferFrom(msg.sender, address(this), rethAmount);
+        weth.transferFrom(msg.sender, address(this), wethAmount);
+
+        // Approve the Vault to spend the tokens
+        reth.approve(address(vault), rethAmount);
+        weth.approve(address(vault), wethAmount);
+
+        address[] memory assets = new address[](2);
+        assets[0] = RETH;
+        assets[1] = WETH;
+
+        uint256[] memory maxAmountsIn = new uint256[](2);
+        maxAmountsIn[0] = rethAmount;
+        maxAmountsIn[1] = wethAmount;
+
+        // Join the pool
+        _join(msg.sender, assets, maxAmountsIn);
+
+        // Send left over tokens back to the user
+        if (reth.balanceOf(address(this)) > 0) {
+            reth.transfer(msg.sender, reth.balanceOf(address(this)));
+        }
+        if (weth.balanceOf(address(this)) > 0) {
+            weth.transfer(msg.sender, weth.balanceOf(address(this)));
+        }
     }
 
     /// @notice Exit the Balancer liquidity pool and withdraw RETH and/or WETH
@@ -101,6 +126,18 @@ contract BalancerLiquidity {
     /// @dev This function allows the user to withdraw their share of liquidity from the RETH/WETH Balancer pool.
     ///      It performs an exit from the pool and returns RETH and/or WETH.
     function exit(uint256 bptAmount, uint256 minRethAmountOut) external {
-        // Write your code here
+        // Transfer LP tokens (BPT) to the contract
+        bpt.transferFrom(msg.sender, address(this), bptAmount);
+
+        address[] memory assets = new address[](2);
+        assets[0] = RETH;
+        assets[1] = WETH;
+
+        uint256[] memory minAmountsOut = new uint256[](2);
+        minAmountsOut[0] = minRethAmountOut;
+        minAmountsOut[1] = 0;
+
+        // Exit the pool
+        _exit(bptAmount, msg.sender, assets, minAmountsOut);
     }
 }

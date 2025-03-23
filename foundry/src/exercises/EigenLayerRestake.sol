@@ -50,7 +50,18 @@ contract EigenLayerRestake {
     /// @dev This function transfers RETH from the user to the contract, approves it for the StrategyManager,
     ///      and then deposits it into the EigenLayer strategy. The user receives shares in return.
     function deposit(uint256 rethAmount) external returns (uint256 shares) {
-        // Write your code here
+        // Transfer RETH from user to this contract
+        reth.transferFrom(msg.sender, address(this), rethAmount);
+
+        // Approve StrategyManager to spend RETH
+        reth.approve(address(strategyManager), rethAmount);
+
+        // Deposit RETH into EigenLayer
+        shares = strategyManager.depositIntoStrategy({
+            strategy: address(strategy),
+            token: address(reth),
+            amount: rethAmount
+        });
     }
 
     /// @notice Delegate staking to a specific operator
@@ -58,7 +69,14 @@ contract EigenLayerRestake {
     /// @dev This function allows the owner to delegate their stake to a specified operator.
     ///      The operator will perform actions on behalf of the staker.
     function delegate(address operator) external auth {
-        // Write your code here
+        delegationManager.delegateTo({
+            operator: operator,
+            approverSignatureAndExpiry: IDelegationManager.SignatureWithExpiry({
+                signature: bytes(""),
+                expiry: 0
+            }),
+            approverSalt: bytes32(0)
+        });
     }
 
     /// @notice Undelegate from the current operator and queue a withdrawal
@@ -70,7 +88,9 @@ contract EigenLayerRestake {
         auth
         returns (bytes32[] memory withdrawalRoot)
     {
-        // Write your code here
+        // Since staker is address(this)
+        address staker = address(this);
+        withdrawalRoot = delegationManager.undelegate(staker);
     }
 
     /// @notice Withdraw staked RETH from an operator after undelegation
@@ -83,7 +103,28 @@ contract EigenLayerRestake {
         external
         auth
     {
-        // Write your code here
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(strategy);
+        uint256[] memory shares_ = new uint256[](1);
+        shares_[0] = shares;
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = RETH;
+
+        delegationManager.completeQueuedWithdrawal({
+            withdrawal: IDelegationManager.Withdrawal({
+                staker: address(this),
+                delegatedTo: operator,
+                withdrawer: address(this),
+                nonce: 0,
+                startBlock: startBlockNum,
+                strategies: strategies,
+                shares: shares_
+            }),
+            tokens: tokens,
+            middlewareTimesIndex: 0,
+            receiveAsTokens: true
+        });
     }
 
     /* Notes on claim rewards
@@ -141,7 +182,7 @@ contract EigenLayerRestake {
     function claimRewards(IRewardsCoordinator.RewardsMerkleClaim memory claim)
         external
     {
-        // Write your code here
+        rewardsCoordinator.processClaim(claim, address(this));
     }
 
     /// @notice Get the number of shares held in the strategy for the current staker
